@@ -2,3 +2,5 @@
 *.o
 *.bin
 *.map
+*/asm_code/code.h
+vm
