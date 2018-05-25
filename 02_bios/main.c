@@ -19,37 +19,37 @@
 void assert(unsigned char condition, char *msg);
 
 int main(void) {
-    int r;
+	int r;
 
 	/* /dev/kvmをopen */
 	int kvmfd = open("/dev/kvm", O_RDWR);
-    assert(kvmfd != -1, "open /dev/kvm")
+	assert(kvmfd != -1, "open /dev/kvm");
 
 	/* VM作成 */
 	int vmfd = ioctl(kvmfd, KVM_CREATE_VM, 0); /* 標準的に第3引数へ0指定 */
-    assert(vmfd == 0, "KVM_CREATE_VM");
+	assert(vmfd == 0, "KVM_CREATE_VM");
 
-    /* TSSを設定 */
-    r = ioctl(vmfd, KVM_SET_TSS_ADDR, IDENTITY_BASE + 0x1000);
-    assert(r == 0, "KVM_SET_TSS_ADDR");
+	/* TSSを設定 */
+	r = ioctl(vmfd, KVM_SET_TSS_ADDR, IDENTITY_BASE + 0x1000);
+	assert(r == 0, "KVM_SET_TSS_ADDR");
 
-    /* IRQCHIPを作成 */
-    r = ioctl(vmfd, KVM_CREATE_IRQCHIP);
-    assert(r == 0, "KVM_CREATE_IRQCHIP");
+	/* IRQCHIPを作成 */
+	r = ioctl(vmfd, KVM_CREATE_IRQCHIP);
+	assert(r == 0, "KVM_CREATE_IRQCHIP");
 
-    /* PITを作成 */
-    r = ioctl(vmfd, KVM_CREATE_PIT);
-    assert(r == 0, "KVM_CREATE_PIT");
+	/* PITを作成 */
+	r = ioctl(vmfd, KVM_CREATE_PIT);
+	assert(r == 0, "KVM_CREATE_PIT");
 
-    /* VCPU作成 */
+	/* VCPU作成 */
 	int vcpufd = ioctl(vmfd, KVM_CREATE_VCPU, VCPU_ID);
-    assert(vcpufd == 0, "KVM_CREATE_VCPU");
+	assert(vcpufd == 0, "KVM_CREATE_VCPU");
 	size_t mmap_size = ioctl(kvmfd, KVM_GET_VCPU_MMAP_SIZE, NULL);
-    assert(mmap_size == 0, "KVM_GET_VCPU_MMAP_SIZE");
+	assert(mmap_size == 0, "KVM_GET_VCPU_MMAP_SIZE");
 	struct kvm_run *run = mmap(NULL, mmap_size, PROT_READ | PROT_WRITE,
 				   MAP_SHARED, vcpufd, 0);
-    assert(mmap_size != MAP_FAILED, "mmap vcpu");
-    /* TODO: CPUID設定 */
+	assert(mmap_size != MAP_FAILED, "mmap vcpu");
+	/* TODO: CPUID設定 */
 
 	struct kvm_sregs sregs;  /* セグメントレジスタ初期値設定 */
 	ioctl(vcpufd, KVM_GET_SREGS, &sregs);
@@ -101,8 +101,8 @@ int main(void) {
 
 void assert(unsigned char condition, char *msg)
 {
-    if (!condition) {
-        perror(msg);
-        exit(EXIT_FAILURE);
-    }
+	if (!condition) {
+		perror(msg);
+		exit(EXIT_FAILURE);
+	}
 }
