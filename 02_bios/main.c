@@ -15,6 +15,7 @@
 #define RAM_SIZE	0x1000
 #define IDENTITY_BASE	0xfffbc000
 #define VCPU_ID		0
+#define BIOS_PATH	"/usr/share/seabios/bios.bin"
 
 void assert(unsigned char condition, char *msg);
 
@@ -49,7 +50,36 @@ int main(void) {
 	struct kvm_run *run = mmap(NULL, mmap_size, PROT_READ | PROT_WRITE,
 				   MAP_SHARED, vcpufd, 0);
 	assert(mmap_size != MAP_FAILED, "mmap vcpu");
-	/* TODO: CPUID設定 */
+
+	/* bios.binを開く */
+	int biosfd = open(BIOS_PATH, O_RDONLY);
+	assert(biosfd != -1, "open bios");
+
+	/* bios.binのファイルサイズ取得 */
+	int bios_size = lseek(biosfd, 0, SEEK_END);
+	assert(bios_size != -1, "lseek 0 SEEK_END");
+	r = lseek(in, 0, SEEK_SET);
+	assert(r != -1, "lseek 0 SEEK_SET");
+
+	/* bios.binのファイルサイズを4KB倍数へ変換 */
+	int bios_blks = bios_size;
+	if (bios_blks & 0x00000fff) {
+		bios_blks &= ~0x00000fff;
+		bios_blks += 0x00001000;
+	}
+	assert(bios_blks <= 0x00020000, "bios size exceeds 128KB.");
+
+	/* BIOS用の領域を確保 */
+	void *tmp;
+	r = posix_memalign(&tmp, 4096, 0x20000);
+	assert(r == 0, "posix_memalign bios");
+
+	/* bios.binを閉じる */
+	/* r = close(biosfd); */
+	/* assert(r != -1, "close bios"); */
+
+
+
 
 	struct kvm_sregs sregs;  /* セグメントレジスタ初期値設定 */
 	ioctl(vcpufd, KVM_GET_SREGS, &sregs);
