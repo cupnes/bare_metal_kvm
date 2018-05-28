@@ -16,8 +16,17 @@
 #define IDENTITY_BASE	0xfffbc000
 #define VCPU_ID		0
 #define BIOS_PATH	"/usr/share/seabios/bios.bin"
+#define BIOS_MEM_SIZE	0x20000	/* 128KB */
+#define BIOS_LEGACY_ADDR	0xe0000
+#define BIOS_SHADOW_ADDR	0xfffe0000
+#define VGABIOS_PATH	"/usr/share/seabios/vgabios-stdvga.bin"
+#define VGABIOS_MEM_SIZE	0x20000	/* 128KB */
+#define VGABIOS_ADDR	0xC0000
 
 void assert(unsigned char condition, char *msg);
+int kvm_set_user_memory_region(
+	int vmfd, unsigned long long guest_phys_addr,
+	unsigned long long memory_size, unsigned long long userspace_addr);
 
 int main(void) {
 	int r;
@@ -67,18 +76,64 @@ int main(void) {
 		bios_blks &= ~0x00000fff;
 		bios_blks += 0x00001000;
 	}
-	assert(bios_blks <= 0x00020000, "bios size exceeds 128KB.");
+	assert(bios_blks <= BIOS_MEM_SIZE, "bios size exceeds 128KB.");
 
 	/* BIOS用の領域を確保 */
-	void *tmp;
-	r = posix_memalign(&tmp, 4096, 0x20000);
+	void *bios_mem;
+	r = posix_memalign(&bios_mem, 4096, BIOS_MEM_SIZE);
 	assert(r == 0, "posix_memalign bios");
+
+	/* bios.binをロード */
+	r = read(biosfd, bios_mem, bios_size);
+	assert(r != -1, "read bios.bin");
+
+	/* BIOS用の領域をゲストへマップ(legacy) */
+	r = kvm_set_user_memory_region(vmfd, BIOS_LEGACY_ADDR, BIOS_MEM_SIZE,
+				       (unsigned long long)bios_mem);
+	if (r != -1, "KVM_SET_USER_MEMORY_REGION bios legacy");
+
+	/* BIOS用の領域をゲストへマップ(shadow) */
+	r = kvm_set_user_memory_region(vmfd, BIOS_SHADOW_ADDR, BIOS_MEM_SIZE,
+				       (unsigned long long)bios_mem);
+	if (r != -1, "KVM_SET_USER_MEMORY_REGION bios shadow");
 
 	/* bios.binを閉じる */
 	/* r = close(biosfd); */
 	/* assert(r != -1, "close bios"); */
 
+	/* vgabiosバイナリを開く */
+	int vgabiosfd = open(VGABIOS_PATH, O_RDONLY);
+	assert(vgabiosfd != -1, "open vgabios");
 
+	/* vgabiosバイナリのサイズを取得 */
+	int vgabios_size = lseek(vgabiosfd, 0, SEEK_END);
+	assert(vgabiosfd != -1, "lseek SEEK_END 0 vgabios");
+	r = lseek(vgabiosfd, 0, SEEK_SET);
+	assert(r != -1, "lseek SEEK_SET 0 vgabios");
+
+	/* vgabiosバイナリサイズを4KBの倍数へ変換 */
+	int vgabios_blks = vgabios_size;
+	if (vgabios_size & 0x00000fff) {
+		vgabios_blks &= ~0x00000fff;
+		vgabios_blks += 0x00001000;
+	}
+	assert(vgabios_blks <= VGABIOS_MEM_SIZE, "vgabios size exceeds 128KB.");
+
+	/* VGABIOS用の領域を確保 */
+	void *vgabios_mem;
+	r = posix_memalign(&vgabios_mem, 4096, VGABIOS_MEM_SIZE);
+	assert(r == 0, "posix_memalign vgabios");
+
+	/* vgabiosバイナリをロード */
+	r = read(vgabiosfd, vgabios_mem, vgabios_size);
+	assert(r != -1, "read vgabios");
+
+	/* VGABIOS用の領域をゲストへマップ */
+	r = kvm_set_user_memory_region(vmfd, VGABIOS_ADDR, VGABIOS_MEM_SIZE,
+				       (unsigned long long)vgabios_mem);
+	if (r != -1, "KVM_SET_USER_MEMORY_REGION vgabios");
+
+	/* TODO: 次 map_ram(pSys,uNumMegsRAM); から */
 
 
 	struct kvm_sregs sregs;  /* セグメントレジスタ初期値設定 */
@@ -135,4 +190,19 @@ void assert(unsigned char condition, char *msg)
 		perror(msg);
 		exit(EXIT_FAILURE);
 	}
+}
+
+int kvm_set_user_memory_region(
+	int vmfd, unsigned long long guest_phys_addr,
+	unsigned long long memory_size, unsigned long long userspace_addr)
+{
+	static unsigned int kvm_usmem_slot = 0;
+
+	struct kvm_userspace_memory_region usmem;
+	usmem.slot = kvm_usmem_slot++;
+	usmem.guest_phys_addr = guest_phys_addr;
+	usmem.memory_size = memory_size;
+	usmem.userspace_addr = userspace_addr;
+	usmem.flags = 0;
+	return ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &vgabios_usmem);
 }
