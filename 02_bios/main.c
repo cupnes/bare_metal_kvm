@@ -9,10 +9,11 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "asm_code/code.h"
 
-#define RAM_SIZE	0x1000
+#define RAM_SIZE	0x200000000
 #define IDENTITY_BASE	0xfffbc000
 #define VCPU_ID		0
 #define BIOS_PATH	"/usr/share/seabios/bios.bin"
@@ -22,6 +23,9 @@
 #define VGABIOS_PATH	"/usr/share/seabios/vgabios-stdvga.bin"
 #define VGABIOS_MEM_SIZE	0x20000	/* 128KB */
 #define VGABIOS_ADDR	0xC0000
+#define SIZE_640KB	0xA0000
+#define SIZE_128KB	0x20000
+#define SIZE_8GB	0x200000000 /* > 0x0e0000000 */
 
 void assert(unsigned char condition, char *msg);
 int kvm_set_user_memory_region(
@@ -37,11 +41,11 @@ int main(void) {
 
 	/* VM作成 */
 	int vmfd = ioctl(kvmfd, KVM_CREATE_VM, 0); /* 標準的に第3引数へ0指定 */
-	assert(vmfd == 0, "KVM_CREATE_VM");
+	assert(vmfd != -1, "KVM_CREATE_VM");
 
 	/* TSSを設定 */
 	r = ioctl(vmfd, KVM_SET_TSS_ADDR, IDENTITY_BASE + 0x1000);
-	assert(r == 0, "KVM_SET_TSS_ADDR");
+	assert(r != -1, "KVM_SET_TSS_ADDR");
 
 	/* IRQCHIPを作成 */
 	r = ioctl(vmfd, KVM_CREATE_IRQCHIP);
@@ -58,7 +62,7 @@ int main(void) {
 	assert(mmap_size == 0, "KVM_GET_VCPU_MMAP_SIZE");
 	struct kvm_run *run = mmap(NULL, mmap_size, PROT_READ | PROT_WRITE,
 				   MAP_SHARED, vcpufd, 0);
-	assert(mmap_size != MAP_FAILED, "mmap vcpu");
+	assert(mmap_size != (unsigned long long)MAP_FAILED, "mmap vcpu");
 
 	/* bios.binを開く */
 	int biosfd = open(BIOS_PATH, O_RDONLY);
@@ -67,7 +71,7 @@ int main(void) {
 	/* bios.binのファイルサイズ取得 */
 	int bios_size = lseek(biosfd, 0, SEEK_END);
 	assert(bios_size != -1, "lseek 0 SEEK_END");
-	r = lseek(in, 0, SEEK_SET);
+	r = lseek(biosfd, 0, SEEK_SET);
 	assert(r != -1, "lseek 0 SEEK_SET");
 
 	/* bios.binのファイルサイズを4KB倍数へ変換 */
@@ -90,16 +94,48 @@ int main(void) {
 	/* BIOS用の領域をゲストへマップ(legacy) */
 	r = kvm_set_user_memory_region(vmfd, BIOS_LEGACY_ADDR, BIOS_MEM_SIZE,
 				       (unsigned long long)bios_mem);
-	if (r != -1, "KVM_SET_USER_MEMORY_REGION bios legacy");
+	assert(r != -1, "KVM_SET_USER_MEMORY_REGION bios legacy");
 
 	/* BIOS用の領域をゲストへマップ(shadow) */
 	r = kvm_set_user_memory_region(vmfd, BIOS_SHADOW_ADDR, BIOS_MEM_SIZE,
 				       (unsigned long long)bios_mem);
-	if (r != -1, "KVM_SET_USER_MEMORY_REGION bios shadow");
+	assert(r != -1, "KVM_SET_USER_MEMORY_REGION bios shadow");
 
-	/* bios.binを閉じる */
-	/* r = close(biosfd); */
-	/* assert(r != -1, "close bios"); */
+	/* ゲストの0x00000000 - 0x0009ffff(640KB)にメモリをマップ */
+	void *addr = mmap(0, SIZE_640KB, PROT_EXEC | PROT_READ | PROT_WRITE,
+			  MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	assert(addr != MAP_FAILED, "mmap mem 640KB");
+	r = kvm_set_user_memory_region(vmfd, 0, SIZE_640KB,
+				       (unsigned long long)addr);
+	assert(r != -1, "KVM_SET_USER_MEMORY_REGION mem 640KB");
+
+	/* ゲストの0x000c0000 - 0x000e0000(128KB)にメモリをマップ */
+	addr = mmap(0, SIZE_128KB, PROT_EXEC | PROT_READ | PROT_WRITE,
+		    MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	assert(addr != MAP_FAILED, "mmap mem 128KB");
+	r = kvm_set_user_memory_region(vmfd, VGABIOS_ADDR, SIZE_128KB,
+				       (unsigned long long)addr);
+	assert(r != -1, "KVM_SET_USER_MEMORY_REGION 128KB");
+
+	/* ゲストの0x00100000 - 0xdfffffff(3.5GB - 1MB)にメモリをマップ */
+	addr = mmap(0, 0xE0000000 - 0x100000, PROT_EXEC | PROT_READ | PROT_WRITE,
+		    MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	r = kvm_set_user_memory_region(vmfd, 0x100000, 0xE0000000 - 0x100000,
+				       (unsigned long long)addr);
+
+	/* ゲストの0x100000000 - 0x21fefffff(4.5GB)にメモリをマップ */
+	addr = mmap(0, RAM_SIZE - 0xE0100000, PROT_EXEC | PROT_READ | PROT_WRITE,
+		    MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	r = kvm_set_user_memory_region(vmfd, 0x100000000, RAM_SIZE - 0xE0100000,
+				       (unsigned long long)addr);
+
+	/* devices_register_all() */
+
+	/* この間、io_register_handler()くらい */
+
+	/* x86_vga_init() */
+	/* x86_vga_rom_init() */
+	/* load_bios() */
 
 	/* vgabiosバイナリを開く */
 	int vgabiosfd = open(VGABIOS_PATH, O_RDONLY);
@@ -111,76 +147,31 @@ int main(void) {
 	r = lseek(vgabiosfd, 0, SEEK_SET);
 	assert(r != -1, "lseek SEEK_SET 0 vgabios");
 
-	/* vgabiosバイナリサイズを4KBの倍数へ変換 */
-	int vgabios_blks = vgabios_size;
-	if (vgabios_size & 0x00000fff) {
-		vgabios_blks &= ~0x00000fff;
-		vgabios_blks += 0x00001000;
-	}
-	assert(vgabios_blks <= VGABIOS_MEM_SIZE, "vgabios size exceeds 128KB.");
+	/* vgabiosバイナリを読み出す */
+	void *vgabios_rom_data = malloc(0x20000);
+	assert(vgabios_rom_data != NULL, "malloc vgabios_rom_data");
+	r = read(vgabiosfd, vgabios_rom_data, vgabios_size);
+	assert(r != -1, "read vgabios_rom_data");
 
-	/* VGABIOS用の領域を確保 */
-	void *vgabios_mem;
-	r = posix_memalign(&vgabios_mem, 4096, VGABIOS_MEM_SIZE);
-	assert(r == 0, "posix_memalign vgabios");
+	/* vgabiosバイナリを閉じる */
+	r = close(vgabiosfd);
+	assert(r != -1, "close vgabios");
 
-	/* vgabiosバイナリをロード */
-	r = read(vgabiosfd, vgabios_mem, vgabios_size);
-	assert(r != -1, "read vgabios");
+	/* RAMデータへコピー */
+	void *vgabios_ram_data = malloc(0x20000);
+	assert(vgabios_ram_data != NULL, "malloc vgabios_ram_data");
+	memcpy(vgabios_ram_data, vgabios_rom_data, 0x20000);
 
-	/* VGABIOS用の領域をゲストへマップ */
-	r = kvm_set_user_memory_region(vmfd, VGABIOS_ADDR, VGABIOS_MEM_SIZE,
-				       (unsigned long long)vgabios_mem);
-	if (r != -1, "KVM_SET_USER_MEMORY_REGION vgabios");
+	/* x86_floppy_init() */
+	FILE *fdcfd = fopen("floppy.img","rb");
+	assert(fdcfd != NULL, "fopen floppy.img");
 
-	/* TODO: 次 map_ram(pSys,uNumMegsRAM); から */
-
-
-	struct kvm_sregs sregs;  /* セグメントレジスタ初期値設定 */
-	ioctl(vcpufd, KVM_GET_SREGS, &sregs);
-	sregs.cs.base = 0;
-	sregs.cs.selector = 0;
-	ioctl(vcpufd, KVM_SET_SREGS, &sregs);
-
-	struct kvm_regs regs = {  /* ステータスレジスタ初期値設定 */
-		.rip = 0x0,
-		.rflags = 0x02, /* RFLAGS初期状態 */
-	};
-	ioctl(vcpufd, KVM_SET_REGS, &regs);
-
-
-	/* メモリを用意 */
-	unsigned char *mem = mmap(NULL, RAM_SIZE, PROT_READ|PROT_WRITE,
-				  MAP_SHARED|MAP_ANONYMOUS|MAP_NORESERVE,
-				  -1, 0);
-	memcpy(mem, code_bin, sizeof(code_bin));  /* メモリへコードを配置 */
-	struct kvm_userspace_memory_region region = {
-		.memory_size = RAM_SIZE,
-		.userspace_addr = (unsigned long long)mem
-	};
-	ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &region); /* VMへメモリを設定 */
-
-	/* 実行 */
+	/* sys_run(pSystem) */
 	while (1) {
-		ioctl(vcpufd, KVM_RUN, NULL);
-
-		/* 何かあるまで返ってこない */
-
-		switch (run->exit_reason) {	/* 何かあった */
-		case KVM_EXIT_HLT:	/* HLTした */
-			/* printf("KVM_EXIT_HLT\n"); */
-			return 0;
-
-		case KVM_EXIT_IO:	/* IO操作 */
-			if ((run->io.direction == KVM_EXIT_IO_OUT)
-			    && (run->io.size == 1) && (run->io.port == 0x01)
-			    && (run->io.count == 1)) {
-				putchar(*(((char *)run) + run->io.data_offset));
-			} else {
-				fprintf(stderr, "unhandled KVM_EXIT_IO\n");
-				return 1;
-			}
-		}
+		r = ioctl(vcpufd, KVM_RUN, 0);
+		assert(r != -1, "KVM_RUN");
+		if (run->exit_reason == KVM_EXIT_IO)
+			assert(1, "KVM EXIT");
 	}
 }
 
@@ -204,5 +195,5 @@ int kvm_set_user_memory_region(
 	usmem.memory_size = memory_size;
 	usmem.userspace_addr = userspace_addr;
 	usmem.flags = 0;
-	return ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &vgabios_usmem);
+	return ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &usmem);
 }
