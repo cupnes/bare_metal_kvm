@@ -57,9 +57,9 @@ int main(void) {
 
 	/* VCPU作成 */
 	int vcpufd = ioctl(vmfd, KVM_CREATE_VCPU, VCPU_ID);
-	assert(vcpufd == 0, "KVM_CREATE_VCPU");
+	assert(vcpufd != -1, "KVM_CREATE_VCPU");
 	size_t mmap_size = ioctl(kvmfd, KVM_GET_VCPU_MMAP_SIZE, NULL);
-	assert(mmap_size == 0, "KVM_GET_VCPU_MMAP_SIZE");
+	assert(mmap_size != 0, "KVM_GET_VCPU_MMAP_SIZE");
 	struct kvm_run *run = mmap(NULL, mmap_size, PROT_READ | PROT_WRITE,
 				   MAP_SHARED, vcpufd, 0);
 	assert(mmap_size != (unsigned long long)MAP_FAILED, "mmap vcpu");
@@ -167,12 +167,32 @@ int main(void) {
 	assert(fdcfd != NULL, "fopen floppy.img");
 
 	/* sys_run(pSystem) */
-	while (1) {
+	unsigned char is_exit = 0;
+	while (is_exit == 0) {
+		printf("Enter: KVM_RUN\n");
 		r = ioctl(vcpufd, KVM_RUN, 0);
 		assert(r != -1, "KVM_RUN");
-		if (run->exit_reason == KVM_EXIT_IO)
-			assert(1, "KVM EXIT");
+		printf("Exit: KVM_RUN(0x%08x)\n", run->exit_reason);
+		switch (run->exit_reason) {
+		case KVM_EXIT_HLT:
+			printf("KVM_EXIT_HLT\n");
+			is_exit = 1;
+			break;
+		case KVM_EXIT_IO:
+			printf("KVM_EXIT_IO\n");
+			printf("direction=%d, size=%d, port=0x%04x, count=0x%08x, data_offset=0x%016llx\n",
+			       run->io.direction, run->io.size, run->io.port,
+			       run->io.count, run->io.data_offset);
+			while (1);
+			break;
+		default:
+			printf("undefined exit_reason\n");
+			while (1);
+			break;
+		}
 	}
+
+	return 0;
 }
 
 void assert(unsigned char condition, char *msg)
