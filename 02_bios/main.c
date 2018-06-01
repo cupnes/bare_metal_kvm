@@ -31,6 +31,7 @@ void assert(unsigned char condition, char *msg);
 int kvm_set_user_memory_region(
 	int vmfd, unsigned long long guest_phys_addr,
 	unsigned long long memory_size, unsigned long long userspace_addr);
+void handle_io(struct kvm_run *run);
 
 int main(void) {
 	int r;
@@ -129,14 +130,6 @@ int main(void) {
 	r = kvm_set_user_memory_region(vmfd, 0x100000000, RAM_SIZE - 0xE0100000,
 				       (unsigned long long)addr);
 
-	/* devices_register_all() */
-
-	/* この間、io_register_handler()くらい */
-
-	/* x86_vga_init() */
-	/* x86_vga_rom_init() */
-	/* load_bios() */
-
 	/* vgabiosバイナリを開く */
 	int vgabiosfd = open(VGABIOS_PATH, O_RDONLY);
 	assert(vgabiosfd != -1, "open vgabios");
@@ -162,11 +155,11 @@ int main(void) {
 	assert(vgabios_ram_data != NULL, "malloc vgabios_ram_data");
 	memcpy(vgabios_ram_data, vgabios_rom_data, 0x20000);
 
-	/* x86_floppy_init() */
+	/* フロッピーディスクイメージを開く */
 	FILE *fdcfd = fopen("floppy.img","rb");
 	assert(fdcfd != NULL, "fopen floppy.img");
 
-	/* sys_run(pSystem) */
+	/* KVM_RUN */
 	unsigned char is_exit = 0;
 	while (is_exit == 0) {
 		printf("Enter: KVM_RUN\n");
@@ -183,7 +176,7 @@ int main(void) {
 			printf("direction=%d, size=%d, port=0x%04x, count=0x%08x, data_offset=0x%016llx\n",
 			       run->io.direction, run->io.size, run->io.port,
 			       run->io.count, run->io.data_offset);
-			while (1);
+			handle_io(run);
 			break;
 		default:
 			printf("undefined exit_reason\n");
@@ -216,4 +209,41 @@ int kvm_set_user_memory_region(
 	usmem.userspace_addr = userspace_addr;
 	usmem.flags = 0;
 	return ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &usmem);
+}
+
+void handle_io(struct kvm_run *run)
+{
+	switch (run->io.direction) {
+	case KVM_EXIT_IO_IN:
+		printf("KVM_EXIT_IO_IN\n");
+		while (1);
+		break;
+	case KVM_EXIT_IO_OUT:
+		printf("KVM_EXIT_IO_OUT\n");
+		unsigned int i;
+		for (i = 0; i < run->io.count; i++) {
+			switch (run->io.size) {
+			case 1:
+				printf("%04x: %02x\n", run->io.port,
+				       *(unsigned char *)((unsigned char *)run + run->io.data_offset));
+				break;
+			case 2:
+				printf("%04x: %04x\n", run->io.port,
+				       *(unsigned short *)((unsigned char *)run + run->io.data_offset));
+				break;
+			case 4:
+				printf("%04x: %08x\n", run->io.port,
+				       *(unsigned int *)((unsigned char *)run + run->io.data_offset));
+				break;
+			default:
+				printf("%04x: io size=%d\n", run->io.port, run->io.size);
+				assert(1, "Unknown io size");
+				break;
+			}
+		}
+		break;
+	default:
+		assert(1, "undefined io direction\n");
+		break;
+	}
 }
