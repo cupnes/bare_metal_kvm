@@ -119,18 +119,6 @@ int main(void) {
 				       (unsigned long long)addr);
 	assert(r != -1, "KVM_SET_USER_MEMORY_REGION 128KB");
 
-	/* ゲストの0x00100000 - 0xdfffffff(3.5GB - 1MB)にメモリをマップ */
-	addr = mmap(0, 0xE0000000 - 0x100000, PROT_EXEC | PROT_READ | PROT_WRITE,
-		    MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-	r = kvm_set_user_memory_region(vmfd, 0x100000, 0xE0000000 - 0x100000,
-				       (unsigned long long)addr);
-
-	/* ゲストの0x100000000 - 0x21fefffff(4.5GB)にメモリをマップ */
-	addr = mmap(0, RAM_SIZE - 0xE0100000, PROT_EXEC | PROT_READ | PROT_WRITE,
-		    MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-	r = kvm_set_user_memory_region(vmfd, 0x100000000, RAM_SIZE - 0xE0100000,
-				       (unsigned long long)addr);
-
 	/* KVM_RUN */
 	struct kvm_regs regs;
 	struct kvm_sregs sregs;
