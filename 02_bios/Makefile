@@ -1,5 +1,5 @@
 CFLAGS = -Wall -Wextra
-SRCS = main.c con.c common.c debug.c
+SRCS = main.c bios.c con.c mem.c common.c debug.c
 
 all: vm
 

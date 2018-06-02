@@ -13,25 +13,18 @@
 
 #include "debug.h"
 #include "common.h"
+#include "mem.h"
+#include "bios.h"
 #include "con.h"
 
 #define RAM_SIZE	0x200000000
 #define IDENTITY_BASE	0xfffbc000
 #define VCPU_ID		0
-#define BIOS_PATH	"/usr/share/seabios/bios.bin"
-#define BIOS_MEM_SIZE	0x20000	/* 128KB */
-#define BIOS_LEGACY_ADDR	0xe0000
-#define BIOS_SHADOW_ADDR	0xfffe0000
-#define VGABIOS_PATH	"/usr/share/seabios/vgabios-stdvga.bin"
-#define VGABIOS_MEM_SIZE	0x20000	/* 128KB */
 #define VGABIOS_ADDR	0xC0000
 #define SIZE_640KB	0xA0000
 #define SIZE_128KB	0x20000
 #define SIZE_8GB	0x200000000 /* > 0x0e0000000 */
 
-int kvm_set_user_memory_region(
-	int vmfd, unsigned long long guest_phys_addr,
-	unsigned long long memory_size, unsigned long long userspace_addr);
 void handle_io(struct kvm_run *run);
 
 int main(void) {
@@ -62,42 +55,8 @@ int main(void) {
 				   MAP_SHARED, vcpufd, 0);
 	assert(mmap_size != (unsigned long long)MAP_FAILED, "mmap vcpu");
 
-	/* bios.binを開く */
-	int biosfd = open(BIOS_PATH, O_RDONLY);
-	assert(biosfd != -1, "open bios");
-
-	/* bios.binのファイルサイズ取得 */
-	int bios_size = lseek(biosfd, 0, SEEK_END);
-	assert(bios_size != -1, "lseek 0 SEEK_END");
-	r = lseek(biosfd, 0, SEEK_SET);
-	assert(r != -1, "lseek 0 SEEK_SET");
-
-	/* bios.binのファイルサイズを4KB倍数へ変換 */
-	int bios_blks = bios_size;
-	if (bios_blks & 0x00000fff) {
-		bios_blks &= ~0x00000fff;
-		bios_blks += 0x00001000;
-	}
-	assert(bios_blks <= BIOS_MEM_SIZE, "bios size exceeds 128KB.");
-
-	/* BIOS用の領域を確保 */
-	void *bios_mem;
-	r = posix_memalign(&bios_mem, 4096, BIOS_MEM_SIZE);
-	assert(r == 0, "posix_memalign bios");
-
-	/* bios.binをロード */
-	r = read(biosfd, bios_mem, bios_size);
-	assert(r != -1, "read bios.bin");
-
-	/* BIOS用の領域をゲストへマップ(legacy) */
-	r = kvm_set_user_memory_region(vmfd, BIOS_LEGACY_ADDR, BIOS_MEM_SIZE,
-				       (unsigned long long)bios_mem);
-	assert(r != -1, "KVM_SET_USER_MEMORY_REGION bios legacy");
-
-	/* BIOS用の領域をゲストへマップ(shadow) */
-	r = kvm_set_user_memory_region(vmfd, BIOS_SHADOW_ADDR, BIOS_MEM_SIZE,
-				       (unsigned long long)bios_mem);
-	assert(r != -1, "KVM_SET_USER_MEMORY_REGION bios shadow");
+	/* BIOSのロード */
+	load_bios(vmfd);
 
 	/* ゲストの0x00000000 - 0x0009ffff(640KB)にメモリをマップ */
 	void *addr = mmap(0, SIZE_640KB, PROT_EXEC | PROT_READ | PROT_WRITE,
@@ -145,21 +104,6 @@ int main(void) {
 	}
 
 	return 0;
-}
-
-int kvm_set_user_memory_region(
-	int vmfd, unsigned long long guest_phys_addr,
-	unsigned long long memory_size, unsigned long long userspace_addr)
-{
-	static unsigned int kvm_usmem_slot = 0;
-
-	struct kvm_userspace_memory_region usmem;
-	usmem.slot = kvm_usmem_slot++;
-	usmem.guest_phys_addr = guest_phys_addr;
-	usmem.memory_size = memory_size;
-	usmem.userspace_addr = userspace_addr;
-	usmem.flags = 0;
-	return ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &usmem);
 }
 
 void handle_io(struct kvm_run *run)
