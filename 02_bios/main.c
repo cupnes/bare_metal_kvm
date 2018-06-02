@@ -11,6 +11,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "debug.h"
+
 #include "asm_code/code.h"
 #include "rtc.h"
 #include "a20.h"
@@ -168,32 +170,32 @@ int main(void) {
 	struct kvm_regs regs;
 	struct kvm_sregs sregs;
 	while (is_exit == 0) {
-		printf("Enter: KVM_RUN\n\n");
+		DEBUG_PRINT("Enter: KVM_RUN\n\n");
 		r = ioctl(vcpufd, KVM_RUN, 0);
 		assert(r != -1, "KVM_RUN");
-		printf("Exit: KVM_RUN(0x%08x)\n", run->exit_reason);
+		DEBUG_PRINT("Exit: KVM_RUN(0x%08x)\n", run->exit_reason);
 
 		r = ioctl(vcpufd, KVM_GET_REGS, &regs);
 		assert(r != -1, "KVM_GET_REGS");
 		r = ioctl(vcpufd, KVM_GET_SREGS, &sregs);
 		assert(r != -1, "KVM_GET_SREGS");
-		printf("cs=0x%016llx, rip=0x%016llx, rflags=0x%016llx\n",
+		DEBUG_PRINT("cs=0x%016llx, rip=0x%016llx, rflags=0x%016llx\n",
 		       sregs.cs.base, regs.rip, regs.rflags);
 
 		switch (run->exit_reason) {
 		case KVM_EXIT_HLT:
-			printf("KVM_EXIT_HLT\n");
+			DEBUG_PRINT("KVM_EXIT_HLT\n");
 			is_exit = 1;
 			break;
 		case KVM_EXIT_IO:
-			printf("KVM_EXIT_IO\n");
-			printf("direction=%d, size=%d, port=0x%04x, count=0x%08x, data_offset=0x%016llx\n",
+			DEBUG_PRINT("KVM_EXIT_IO\n");
+			DEBUG_PRINT("direction=%d, size=%d, port=0x%04x, count=0x%08x, data_offset=0x%016llx\n",
 			       run->io.direction, run->io.size, run->io.port,
 			       run->io.count, run->io.data_offset);
 			handle_io(run);
 			break;
 		default:
-			printf("undefined exit_reason\n");
+			DEBUG_PRINT("undefined exit_reason\n");
 			while (1);
 			break;
 		}
@@ -223,27 +225,27 @@ void dump_io(struct kvm_run *run)
 {
 	switch (run->io.direction) {
 	case KVM_EXIT_IO_IN:
-		printf("KVM_EXIT_IO_IN\n");
+		DEBUG_PRINT("KVM_EXIT_IO_IN\n");
 		break;
 	case KVM_EXIT_IO_OUT:
-		printf("KVM_EXIT_IO_OUT\n");
+		DEBUG_PRINT("KVM_EXIT_IO_OUT\n");
 		unsigned int i;
 		for (i = 0; i < run->io.count; i++) {
 			switch (run->io.size) {
 			case 1:
-				printf("%04x: %02x\n", run->io.port,
+				DEBUG_PRINT("%04x: %02x\n", run->io.port,
 				       *(unsigned char *)((unsigned char *)run + run->io.data_offset));
 				break;
 			case 2:
-				printf("%04x: %04x\n", run->io.port,
+				DEBUG_PRINT("%04x: %04x\n", run->io.port,
 				       *(unsigned short *)((unsigned char *)run + run->io.data_offset));
 				break;
 			case 4:
-				printf("%04x: %08x\n", run->io.port,
+				DEBUG_PRINT("%04x: %08x\n", run->io.port,
 				       *(unsigned int *)((unsigned char *)run + run->io.data_offset));
 				break;
 			default:
-				printf("%04x: io size=%d\n", run->io.port, run->io.size);
+				DEBUG_PRINT("%04x: io size=%d\n", run->io.port, run->io.size);
 				assert(0, "Undefined IO size");
 			}
 		}
