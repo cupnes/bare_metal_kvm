@@ -156,10 +156,6 @@ int main(void) {
 	assert(vgabios_ram_data != NULL, "malloc vgabios_ram_data");
 	memcpy(vgabios_ram_data, vgabios_rom_data, 0x20000);
 
-	/* フロッピーディスクイメージを開く */
-	FILE *fdcfd = fopen("floppy.img","rb");
-	assert(fdcfd != NULL, "fopen floppy.img");
-
 	/* KVM_RUN */
 	unsigned char is_exit = 0;
 	struct kvm_regs regs;
