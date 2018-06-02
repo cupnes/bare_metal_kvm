@@ -157,10 +157,9 @@ int main(void) {
 	memcpy(vgabios_ram_data, vgabios_rom_data, 0x20000);
 
 	/* KVM_RUN */
-	unsigned char is_exit = 0;
 	struct kvm_regs regs;
 	struct kvm_sregs sregs;
-	while (is_exit == 0) {
+	while (1) {
 		DEBUG_PRINT("Enter: KVM_RUN\n\n");
 		r = ioctl(vcpufd, KVM_RUN, 0);
 		assert(r != -1, "KVM_RUN");
@@ -174,10 +173,6 @@ int main(void) {
 		       sregs.cs.base, regs.rip, regs.rflags);
 
 		switch (run->exit_reason) {
-		case KVM_EXIT_HLT:
-			DEBUG_PRINT("KVM_EXIT_HLT\n");
-			is_exit = 1;
-			break;
 		case KVM_EXIT_IO:
 			DEBUG_PRINT("KVM_EXIT_IO\n");
 			DEBUG_PRINT("direction=%d, size=%d, port=0x%04x, count=0x%08x, data_offset=0x%016llx\n",
@@ -186,9 +181,7 @@ int main(void) {
 			handle_io(run);
 			break;
 		default:
-			DEBUG_PRINT("undefined exit_reason\n");
-			while (1);
-			break;
+			assert(0, "undefined exit_reason\n");
 		}
 	}
 
