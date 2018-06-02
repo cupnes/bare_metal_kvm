@@ -131,31 +131,6 @@ int main(void) {
 	r = kvm_set_user_memory_region(vmfd, 0x100000000, RAM_SIZE - 0xE0100000,
 				       (unsigned long long)addr);
 
-	/* vgabiosバイナリを開く */
-	int vgabiosfd = open(VGABIOS_PATH, O_RDONLY);
-	assert(vgabiosfd != -1, "open vgabios");
-
-	/* vgabiosバイナリのサイズを取得 */
-	int vgabios_size = lseek(vgabiosfd, 0, SEEK_END);
-	assert(vgabiosfd != -1, "lseek SEEK_END 0 vgabios");
-	r = lseek(vgabiosfd, 0, SEEK_SET);
-	assert(r != -1, "lseek SEEK_SET 0 vgabios");
-
-	/* vgabiosバイナリを読み出す */
-	void *vgabios_rom_data = malloc(0x20000);
-	assert(vgabios_rom_data != NULL, "malloc vgabios_rom_data");
-	r = read(vgabiosfd, vgabios_rom_data, vgabios_size);
-	assert(r != -1, "read vgabios_rom_data");
-
-	/* vgabiosバイナリを閉じる */
-	r = close(vgabiosfd);
-	assert(r != -1, "close vgabios");
-
-	/* RAMデータへコピー */
-	void *vgabios_ram_data = malloc(0x20000);
-	assert(vgabios_ram_data != NULL, "malloc vgabios_ram_data");
-	memcpy(vgabios_ram_data, vgabios_rom_data, 0x20000);
-
 	/* KVM_RUN */
 	struct kvm_regs regs;
 	struct kvm_sregs sregs;
