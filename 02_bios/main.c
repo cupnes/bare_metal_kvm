@@ -15,7 +15,7 @@
 #include "common.h"
 #include "mem.h"
 #include "bios.h"
-#include "con.h"
+#include "io.h"
 
 #define RAM_SIZE	0x200000000
 #define IDENTITY_BASE	0xfffbc000
@@ -24,8 +24,6 @@
 #define SIZE_640KB	0xA0000
 #define SIZE_128KB	0x20000
 #define SIZE_8GB	0x200000000 /* > 0x0e0000000 */
-
-void handle_io(struct kvm_run *run);
 
 int main(void) {
 	int r;
@@ -75,27 +73,16 @@ int main(void) {
 	assert(r != -1, "KVM_SET_USER_MEMORY_REGION 128KB");
 
 	/* KVM_RUN */
-	struct kvm_regs regs;
-	struct kvm_sregs sregs;
 	while (1) {
 		DEBUG_PRINT("Enter: KVM_RUN\n\n");
 		r = ioctl(vcpufd, KVM_RUN, 0);
 		assert(r != -1, "KVM_RUN");
 		DEBUG_PRINT("Exit: KVM_RUN(0x%08x)\n", run->exit_reason);
 
-		r = ioctl(vcpufd, KVM_GET_REGS, &regs);
-		assert(r != -1, "KVM_GET_REGS");
-		r = ioctl(vcpufd, KVM_GET_SREGS, &sregs);
-		assert(r != -1, "KVM_GET_SREGS");
-		DEBUG_PRINT("cs=0x%016llx, rip=0x%016llx, rflags=0x%016llx\n",
-		       sregs.cs.base, regs.rip, regs.rflags);
+		dump_regs(vcpufd);
 
 		switch (run->exit_reason) {
 		case KVM_EXIT_IO:
-			DEBUG_PRINT("KVM_EXIT_IO\n");
-			DEBUG_PRINT("direction=%d, size=%d, port=0x%04x, count=0x%08x, data_offset=0x%016llx\n",
-			       run->io.direction, run->io.size, run->io.port,
-			       run->io.count, run->io.data_offset);
 			handle_io(run);
 			break;
 		default:
@@ -104,10 +91,4 @@ int main(void) {
 	}
 
 	return 0;
-}
-
-void handle_io(struct kvm_run *run)
-{
-	if (run->io.port == CON_IO_WRITE)
-		con_handle_io(run);
 }

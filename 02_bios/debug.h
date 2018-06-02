@@ -9,3 +9,4 @@
 #endif
 
 void dump_io(struct kvm_run *run);
+void dump_regs(int vcpufd);
