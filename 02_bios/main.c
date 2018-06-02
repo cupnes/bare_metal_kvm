@@ -17,13 +17,7 @@
 #include "bios.h"
 #include "io.h"
 
-#define RAM_SIZE	0x200000000
-#define IDENTITY_BASE	0xfffbc000
-#define VCPU_ID		0
-#define VGABIOS_ADDR	0xC0000
-#define SIZE_640KB	0xA0000
-#define SIZE_128KB	0x20000
-#define SIZE_8GB	0x200000000 /* > 0x0e0000000 */
+#define VCPU_ID	0
 
 int main(void) {
 	int r;
@@ -56,21 +50,8 @@ int main(void) {
 	/* BIOSのロード */
 	load_bios(vmfd);
 
-	/* ゲストの0x00000000 - 0x0009ffff(640KB)にメモリをマップ */
-	void *addr = mmap(0, SIZE_640KB, PROT_EXEC | PROT_READ | PROT_WRITE,
-			  MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-	assert(addr != MAP_FAILED, "mmap mem 640KB");
-	r = kvm_set_user_memory_region(vmfd, 0, SIZE_640KB,
-				       (unsigned long long)addr);
-	assert(r != -1, "KVM_SET_USER_MEMORY_REGION mem 640KB");
-
-	/* ゲストの0x000c0000 - 0x000e0000(128KB)にメモリをマップ */
-	addr = mmap(0, SIZE_128KB, PROT_EXEC | PROT_READ | PROT_WRITE,
-		    MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-	assert(addr != MAP_FAILED, "mmap mem 128KB");
-	r = kvm_set_user_memory_region(vmfd, VGABIOS_ADDR, SIZE_128KB,
-				       (unsigned long long)addr);
-	assert(r != -1, "KVM_SET_USER_MEMORY_REGION 128KB");
+	/* RAMのセットアップ */
+	setup_mem(vmfd);
 
 	/* KVM_RUN */
 	while (1) {
