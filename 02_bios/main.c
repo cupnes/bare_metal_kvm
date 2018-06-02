@@ -13,14 +13,7 @@
 
 #include "debug.h"
 #include "common.h"
-
-#include "asm_code/code.h"
-#include "rtc.h"
-#include "a20.h"
 #include "con.h"
-#include "pci.h"
-#include "qemu_paravirt.h"
-#include "dma.h"
 
 #define RAM_SIZE	0x200000000
 #define IDENTITY_BASE	0xfffbc000

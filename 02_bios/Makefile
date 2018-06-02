@@ -1,19 +1,15 @@
 CFLAGS = -Wall -Wextra
-SRCS = main.c rtc.c a20.c con.c pci.c qemu_paravirt.c dma.c common.c
+SRCS = main.c con.c common.c debug.c
 
 all: vm
 
-vm: asm_code/code.h $(SRCS)
+vm: $(SRCS)
 	gcc $(CFLAGS) -o $@ $+
-
-asm_code/code.h:
-	make -C asm_code
 
 run: vm
 	./vm
 
 clean:
 	rm -f *~ vm
-	make -C asm_code clean
 
 .PHONY: run clean

@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "debug.h"
+#include "common.h"
 
 void dump_io(struct kvm_run *run)
 {
