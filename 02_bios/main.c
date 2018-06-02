@@ -45,10 +45,6 @@ int main(void) {
 	int vmfd = ioctl(kvmfd, KVM_CREATE_VM, 0); /* 標準的に第3引数へ0指定 */
 	assert(vmfd != -1, "KVM_CREATE_VM");
 
-	/* TSSを設定 */
-	r = ioctl(vmfd, KVM_SET_TSS_ADDR, IDENTITY_BASE + 0x1000);
-	assert(r != -1, "KVM_SET_TSS_ADDR");
-
 	/* IRQCHIPを作成 */
 	r = ioctl(vmfd, KVM_CREATE_IRQCHIP);
 	assert(r == 0, "KVM_CREATE_IRQCHIP");
