@@ -161,11 +161,21 @@ int main(void) {
 
 	/* KVM_RUN */
 	unsigned char is_exit = 0;
+	struct kvm_regs regs;
+	struct kvm_sregs sregs;
 	while (is_exit == 0) {
 		printf("Enter: KVM_RUN\n");
 		r = ioctl(vcpufd, KVM_RUN, 0);
 		assert(r != -1, "KVM_RUN");
 		printf("Exit: KVM_RUN(0x%08x)\n", run->exit_reason);
+
+		r = ioctl(vcpufd, KVM_GET_REGS, &regs);
+		assert(r != -1, "KVM_GET_REGS");
+		r = ioctl(vcpufd, KVM_GET_SREGS, &sregs);
+		assert(r != -1, "KVM_GET_SREGS");
+		printf("cs=0x%016llx, rip=0x%016llx, rflags=0x%016llx\n",
+		       sregs.cs.base, regs.rip, regs.rflags);
+
 		switch (run->exit_reason) {
 		case KVM_EXIT_HLT:
 			printf("KVM_EXIT_HLT\n");
