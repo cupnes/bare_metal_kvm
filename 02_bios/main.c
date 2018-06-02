@@ -17,6 +17,9 @@
 #include "rtc.h"
 #include "a20.h"
 #include "con.h"
+#include "pci.h"
+#include "qemu_paravirt.h"
+#include "dma.h"
 
 #define RAM_SIZE	0x200000000
 #define IDENTITY_BASE	0xfffbc000
@@ -273,7 +276,27 @@ void handle_io(struct kvm_run *run)
 		con_handle_io(run);
 		break;
 
-	default:
-		assert(0, "Undefined IO addr");
+	case PCI_IO_A:
+	case PCI_IO_B:
+		pci_handle_io(run);
+		break;
+
+	case QEMU_PARAVIRT_IO_A:
+	case QEMU_PARAVIRT_IO_B:
+		qemu_paravirt_handle_io(run);
+		break;
+
+	case DMA_IO_WR_START_ADDR_26:
+	case DMA_IO_R_COMMAND:
+	case DMA_IO_WR_SINGLE_MASK_BIT:
+	case DMA_IO_WR_MODE_REG:
+	case DMA_IO_W_FLIPFLOP_RESET:
+	case DMA_IO_WR_MASTER_CLEAR:
+	case DMA_IO_A:
+		dma_handle_io(run);
+		break;
+
+	/* default: */
+		/* assert(0, "Undefined IO addr"); */
 	}
 }

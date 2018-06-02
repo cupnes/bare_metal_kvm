@@ -1,5 +1,7 @@
 #pragma once
 
+/* #define DEBUG */
+
 #ifdef DEBUG
 #define DEBUG_PRINT(...)	fprintf(stderr, __VA_ARGS__)
 #else

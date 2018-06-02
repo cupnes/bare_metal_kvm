@@ -1,5 +1,5 @@
 CFLAGS = -Wall -Wextra
-SRCS = main.c rtc.c a20.c con.c common.c
+SRCS = main.c rtc.c a20.c con.c pci.c qemu_paravirt.c dma.c common.c
 
 all: vm
 
