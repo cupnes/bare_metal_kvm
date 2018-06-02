@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "debug.h"
+#include "common.h"
 
 #include "asm_code/code.h"
 #include "rtc.h"
@@ -35,11 +36,9 @@
 #define SIZE_128KB	0x20000
 #define SIZE_8GB	0x200000000 /* > 0x0e0000000 */
 
-void assert(unsigned char condition, char *msg);
 int kvm_set_user_memory_region(
 	int vmfd, unsigned long long guest_phys_addr,
 	unsigned long long memory_size, unsigned long long userspace_addr);
-void dump_io(struct kvm_run *run);
 void handle_io(struct kvm_run *run);
 
 int main(void) {
@@ -207,8 +206,6 @@ int main(void) {
 	return 0;
 }
 
-
-
 int kvm_set_user_memory_region(
 	int vmfd, unsigned long long guest_phys_addr,
 	unsigned long long memory_size, unsigned long long userspace_addr)
@@ -224,79 +221,8 @@ int kvm_set_user_memory_region(
 	return ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &usmem);
 }
 
-void dump_io(struct kvm_run *run)
-{
-	switch (run->io.direction) {
-	case KVM_EXIT_IO_IN:
-		DEBUG_PRINT("KVM_EXIT_IO_IN\n");
-		break;
-	case KVM_EXIT_IO_OUT:
-		DEBUG_PRINT("KVM_EXIT_IO_OUT\n");
-		unsigned int i;
-		for (i = 0; i < run->io.count; i++) {
-			switch (run->io.size) {
-			case 1:
-				DEBUG_PRINT("%04x: %02x\n", run->io.port,
-				       *(unsigned char *)((unsigned char *)run + run->io.data_offset));
-				break;
-			case 2:
-				DEBUG_PRINT("%04x: %04x\n", run->io.port,
-				       *(unsigned short *)((unsigned char *)run + run->io.data_offset));
-				break;
-			case 4:
-				DEBUG_PRINT("%04x: %08x\n", run->io.port,
-				       *(unsigned int *)((unsigned char *)run + run->io.data_offset));
-				break;
-			default:
-				DEBUG_PRINT("%04x: io size=%d\n", run->io.port, run->io.size);
-				assert(0, "Undefined IO size");
-			}
-		}
-		break;
-	default:
-		assert(0, "Undefined IO direction\n");
-	}
-}
-
 void handle_io(struct kvm_run *run)
 {
-	dump_io(run);
-
-	switch (run->io.port) {
-	case RTC_IO_CMD:
-	case RTC_IO_DATA:
-		rtc_handle_io(run);
-		break;
-
-	case A20_IO:
-		a20_handle_io(run);
-		break;
-
-	case CON_IO_WRITE:
+	if (run->io.port == CON_IO_WRITE)
 		con_handle_io(run);
-		break;
-
-	case PCI_IO_A:
-	case PCI_IO_B:
-		pci_handle_io(run);
-		break;
-
-	case QEMU_PARAVIRT_IO_A:
-	case QEMU_PARAVIRT_IO_B:
-		qemu_paravirt_handle_io(run);
-		break;
-
-	case DMA_IO_WR_START_ADDR_26:
-	case DMA_IO_R_COMMAND:
-	case DMA_IO_WR_SINGLE_MASK_BIT:
-	case DMA_IO_WR_MODE_REG:
-	case DMA_IO_W_FLIPFLOP_RESET:
-	case DMA_IO_WR_MASTER_CLEAR:
-	case DMA_IO_A:
-		dma_handle_io(run);
-		break;
-
-	/* default: */
-		/* assert(0, "Undefined IO addr"); */
-	}
 }

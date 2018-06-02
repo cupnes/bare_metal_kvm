@@ -7,3 +7,5 @@
 #else
 #define DEBUG_PRINT(...)	((void)0)
 #endif
+
+void dump_io(struct kvm_run *run);
