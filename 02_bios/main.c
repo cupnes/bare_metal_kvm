@@ -12,6 +12,9 @@
 #include <unistd.h>
 
 #include "asm_code/code.h"
+#include "rtc.h"
+#include "a20.h"
+#include "con.h"
 
 #define RAM_SIZE	0x200000000
 #define IDENTITY_BASE	0xfffbc000
@@ -31,6 +34,7 @@ void assert(unsigned char condition, char *msg);
 int kvm_set_user_memory_region(
 	int vmfd, unsigned long long guest_phys_addr,
 	unsigned long long memory_size, unsigned long long userspace_addr);
+void dump_io(struct kvm_run *run);
 void handle_io(struct kvm_run *run);
 
 int main(void) {
@@ -164,7 +168,7 @@ int main(void) {
 	struct kvm_regs regs;
 	struct kvm_sregs sregs;
 	while (is_exit == 0) {
-		printf("Enter: KVM_RUN\n");
+		printf("Enter: KVM_RUN\n\n");
 		r = ioctl(vcpufd, KVM_RUN, 0);
 		assert(r != -1, "KVM_RUN");
 		printf("Exit: KVM_RUN(0x%08x)\n", run->exit_reason);
@@ -198,13 +202,7 @@ int main(void) {
 	return 0;
 }
 
-void assert(unsigned char condition, char *msg)
-{
-	if (!condition) {
-		perror(msg);
-		exit(EXIT_FAILURE);
-	}
-}
+
 
 int kvm_set_user_memory_region(
 	int vmfd, unsigned long long guest_phys_addr,
@@ -221,12 +219,11 @@ int kvm_set_user_memory_region(
 	return ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &usmem);
 }
 
-void handle_io(struct kvm_run *run)
+void dump_io(struct kvm_run *run)
 {
 	switch (run->io.direction) {
 	case KVM_EXIT_IO_IN:
 		printf("KVM_EXIT_IO_IN\n");
-		while (1);
 		break;
 	case KVM_EXIT_IO_OUT:
 		printf("KVM_EXIT_IO_OUT\n");
@@ -247,13 +244,34 @@ void handle_io(struct kvm_run *run)
 				break;
 			default:
 				printf("%04x: io size=%d\n", run->io.port, run->io.size);
-				assert(1, "Unknown io size");
-				break;
+				assert(0, "Undefined IO size");
 			}
 		}
 		break;
 	default:
-		assert(1, "undefined io direction\n");
+		assert(0, "Undefined IO direction\n");
+	}
+}
+
+void handle_io(struct kvm_run *run)
+{
+	dump_io(run);
+
+	switch (run->io.port) {
+	case RTC_IO_CMD:
+	case RTC_IO_DATA:
+		rtc_handle_io(run);
 		break;
+
+	case A20_IO:
+		a20_handle_io(run);
+		break;
+
+	case CON_IO_WRITE:
+		con_handle_io(run);
+		break;
+
+	default:
+		assert(0, "Undefined IO addr");
 	}
 }

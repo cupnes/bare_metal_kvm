@@ -1,8 +1,9 @@
 CFLAGS = -Wall -Wextra
+SRCS = main.c rtc.c a20.c con.c common.c
 
 all: vm
 
-vm: asm_code/code.h main.c
+vm: asm_code/code.h $(SRCS)
 	gcc $(CFLAGS) -o $@ $+
 
 asm_code/code.h:
