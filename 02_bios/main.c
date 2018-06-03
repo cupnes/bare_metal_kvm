@@ -65,7 +65,9 @@ int main(void) {
 		case KVM_EXIT_IO:
 			io_handle(run);
 			break;
+
 		default:
+			fflush(stdout);
 			assert(0, "undefined exit_reason\n");
 		}
 	}
