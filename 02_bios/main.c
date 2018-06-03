@@ -3,10 +3,8 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
-
 #include "debug.h"
 #include "common.h"
-
 #include "ram.h"
 #include "bios_rom.h"
 #include "io.h"
@@ -49,7 +47,7 @@ int main(void) {
 	assert(mmap_size != (unsigned long long)MAP_FAILED, "mmap vcpu");
 
 	/* BIOS ROM作成、VMへ設定 */
-	load_bios(vmfd, BIOS_PATH);
+	bios_rom_install(vmfd, BIOS_PATH);
 
 	/* RAM作成、VMへ設定 */
 	ram_install(vmfd, RAM1_BASE, RAM1_SIZE);

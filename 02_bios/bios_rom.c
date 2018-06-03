@@ -2,19 +2,18 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
-
 #include "common.h"
 
-#define BIOS_MEM_SIZE		0x20000	/* 128KB */
-#define BIOS_LEGACY_ADDR	0xe0000
+#define BIOS_MEM_SIZE		0x00020000	/* 128KB */
+#define BIOS_LEGACY_ADDR	0x000e0000
 #define BIOS_SHADOW_ADDR	0xfffe0000
 
-void load_bios(int vmfd, char *bios_path)
+void bios_rom_install(int vmfd, char *path)
 {
 	int r;
 
 	/* bios.binを開く */
-	int biosfd = open(bios_path, O_RDONLY);
+	int biosfd = open(path, O_RDONLY);
 	assert(biosfd != -1, "open bios");
 
 	/* bios.binのファイルサイズ取得 */
