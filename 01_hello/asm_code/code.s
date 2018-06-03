@@ -1,5 +1,6 @@
 	mov	$0x48,	%al
 	out	%al,	$0x01
+/*
 	mov	$0x65,	%al
 	out	%al,	$0x01
 	mov	$0x6c,	%al
@@ -8,4 +9,5 @@
 	out	%al,	$0x01
 	mov	$0x6f,	%al
 	out	%al,	$0x01
+*/
 	hlt
