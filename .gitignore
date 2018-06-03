@@ -2,5 +2,5 @@
 *.o
 *.bin
 *.map
-*/asm_code/rom.h
+*/rom/rom.h
 vm

@@ -2,17 +2,17 @@ CFLAGS = -Wall -Wextra
 
 all: vm
 
-vm: asm_code/rom.h vm.c
+vm: rom/rom.h vm.c
 	gcc $(CFLAGS) -o $@ $+
 
-asm_code/rom.h:
-	make -C asm_code
+rom/rom.h:
+	make -C rom
 
 run: vm
 	./vm
 
 clean:
 	rm -f *~ vm
-	make -C asm_code clean
+	make -C rom clean
 
 .PHONY: run clean

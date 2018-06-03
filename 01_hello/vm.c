@@ -10,7 +10,7 @@
 #include <sys/mman.h>
 #include <string.h>
 
-#include "asm_code/rom.h"
+#include "rom/rom.h"
 
 #define RAM_SIZE 0x1000
 
