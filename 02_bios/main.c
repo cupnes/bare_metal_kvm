@@ -6,7 +6,8 @@
 
 #include "debug.h"
 #include "common.h"
-#include "mem.h"
+
+#include "ram.h"
 #include "bios.h"
 #include "io.h"
 

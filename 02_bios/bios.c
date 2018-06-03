@@ -4,7 +4,6 @@
 #include <unistd.h>
 
 #include "common.h"
-#include "mem.h"
 
 #define BIOS_MEM_SIZE		0x20000	/* 128KB */
 #define BIOS_LEGACY_ADDR	0xe0000
