@@ -6,17 +6,16 @@
 #include "common.h"
 #include "mem.h"
 
-#define BIOS_PATH		"/usr/share/seabios/bios.bin"
 #define BIOS_MEM_SIZE		0x20000	/* 128KB */
 #define BIOS_LEGACY_ADDR	0xe0000
 #define BIOS_SHADOW_ADDR	0xfffe0000
 
-void load_bios(int vmfd)
+void load_bios(int vmfd, char *bios_path)
 {
 	int r;
 
 	/* bios.binを開く */
-	int biosfd = open(BIOS_PATH, O_RDONLY);
+	int biosfd = open(bios_path, O_RDONLY);
 	assert(biosfd != -1, "open bios");
 
 	/* bios.binのファイルサイズ取得 */
@@ -24,14 +23,7 @@ void load_bios(int vmfd)
 	assert(bios_size != -1, "lseek 0 SEEK_END");
 	r = lseek(biosfd, 0, SEEK_SET);
 	assert(r != -1, "lseek 0 SEEK_SET");
-
-	/* bios.binのファイルサイズを4KB倍数へ変換 */
-	int bios_blks = bios_size;
-	if (bios_blks & 0x00000fff) {
-		bios_blks &= ~0x00000fff;
-		bios_blks += 0x00001000;
-	}
-	assert(bios_blks <= BIOS_MEM_SIZE, "bios size exceeds 128KB.");
+	assert(bios_size <= BIOS_MEM_SIZE, "bios size exceeds 128KB.");
 
 	/* BIOS用の領域を確保 */
 	void *bios_mem;

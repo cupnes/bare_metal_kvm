@@ -38,7 +38,7 @@ void setup_mem(int vmfd)
 				       (unsigned long long)addr);
 	assert(r != -1, "KVM_SET_USER_MEMORY_REGION mem 640KB");
 
-	/* ゲストの0x000c0000 - 0x000e0000(128KB)にメモリをマップ */
+	/* ゲストの0x000c0000 - 0x000dffff(128KB)にメモリをマップ */
 	addr = mmap(0, SIZE_128KB, PROT_EXEC | PROT_READ | PROT_WRITE,
 		    MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	assert(addr != MAP_FAILED, "mmap mem 128KB");

@@ -10,7 +10,8 @@
 #include "bios.h"
 #include "io.h"
 
-#define VCPU_ID	0
+#define VCPU_ID		0
+#define BIOS_PATH	"/usr/share/seabios/bios.bin"
 
 int main(void) {
 	int r;
@@ -41,7 +42,7 @@ int main(void) {
 	assert(mmap_size != (unsigned long long)MAP_FAILED, "mmap vcpu");
 
 	/* BIOSのロード */
-	load_bios(vmfd);
+	load_bios(vmfd, BIOS_PATH);
 
 	/* RAMのセットアップ */
 	setup_mem(vmfd);
