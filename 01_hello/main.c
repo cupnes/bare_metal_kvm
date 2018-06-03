@@ -56,7 +56,8 @@ int main(void) {
 
 
 	/* 実行 */
-	while (1) {
+	unsigned char is_running = 1;
+	while (is_running) {
 		ioctl(vcpufd, KVM_RUN, NULL);
 
 		/* 何かあるまで返ってこない */
@@ -64,7 +65,9 @@ int main(void) {
 		switch (run->exit_reason) {	/* 何かあった */
 		case KVM_EXIT_HLT:	/* HLTした */
 			/* printf("KVM_EXIT_HLT\n"); */
-			return 0;
+			is_running = 1;
+			fflush(stdout);
+			break;
 
 		case KVM_EXIT_IO:	/* IO操作 */
 			if (run->io.port == 0x01
@@ -77,4 +80,6 @@ int main(void) {
 			}
 		}
 	}
+
+	return 0;
 }
