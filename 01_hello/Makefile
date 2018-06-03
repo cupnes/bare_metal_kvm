@@ -1,18 +1,18 @@
 CFLAGS = -Wall -Wextra
 
-all: hello
+all: vm
 
-hello: asm_code/code.h hello.c
+vm: asm_code/code.h vm.c
 	gcc $(CFLAGS) -o $@ $+
 
 asm_code/code.h:
 	make -C asm_code
 
-run: hello
-	./hello
+run: vm
+	./vm
 
 clean:
-	rm -f *~ hello
+	rm -f *~ vm
 	make -C asm_code clean
 
 .PHONY: run clean
