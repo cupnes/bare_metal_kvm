@@ -1,8 +1,8 @@
 CFLAGS  = -Wall -Wextra
 CFLAGS += -nostdinc -nostdlib -fno-builtin -fno-common -c
-LDFLAGS = -Map code.map -s -x -T code.ld
+LDFLAGS = -Map rom.map -s -x -T rom.ld
 
-all: code.h
+all: rom.h
 
 %.h: %.bin
 	xxd -i $^ > $@

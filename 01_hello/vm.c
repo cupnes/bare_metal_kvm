@@ -10,7 +10,7 @@
 #include <sys/mman.h>
 #include <string.h>
 
-#include "asm_code/code.h"
+#include "asm_code/rom.h"
 
 #define RAM_SIZE 0x1000
 
@@ -27,7 +27,7 @@ int main(void) {
 	unsigned char *mem = mmap(NULL, RAM_SIZE, PROT_READ|PROT_WRITE,
 				  MAP_SHARED|MAP_ANONYMOUS|MAP_NORESERVE,
 				  -1, 0);
-	memcpy(mem, code_bin, sizeof(code_bin));  /* メモリへコードを配置 */
+	memcpy(mem, rom_bin, sizeof(rom_bin));  /* メモリへコードを配置 */
 	struct kvm_userspace_memory_region region = {
 		.memory_size = RAM_SIZE,
 		.userspace_addr = (unsigned long long)mem

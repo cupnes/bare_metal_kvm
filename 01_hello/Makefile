@@ -2,10 +2,10 @@ CFLAGS = -Wall -Wextra
 
 all: vm
 
-vm: asm_code/code.h vm.c
+vm: asm_code/rom.h vm.c
 	gcc $(CFLAGS) -o $@ $+
 
-asm_code/code.h:
+asm_code/rom.h:
 	make -C asm_code
 
 run: vm
