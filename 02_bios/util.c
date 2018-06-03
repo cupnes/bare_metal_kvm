@@ -61,7 +61,11 @@ void dump_io(struct kvm_run *run)
 	}
 }
 
+#ifdef DEBUG
 void dump_segment_register(struct kvm_segment *s)
+#else
+void dump_segment_register(struct kvm_segment *s __attribute__ ((unused)))
+#endif
 {
 	DEBUG_PRINT("base=%016llx limit=%08x selector=%04x type=%02x\n",
 		    s->base, s->limit, s->selector, s->type);
