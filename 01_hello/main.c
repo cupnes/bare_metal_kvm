@@ -65,7 +65,7 @@ int main(void) {
 		switch (run->exit_reason) {	/* 何かあった */
 		case KVM_EXIT_HLT:	/* HLTした */
 			/* printf("KVM_EXIT_HLT\n"); */
-			is_running = 1;
+			is_running = 0;
 			fflush(stdout);
 			break;
 
