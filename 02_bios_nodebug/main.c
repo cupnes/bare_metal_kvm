@@ -6,7 +6,7 @@
 #include "util.h"
 #include "ram.h"
 #include "bios_rom.h"
-#include "io.h"
+#include "crtc.h"
 
 #define VCPU_ID		0
 
@@ -47,8 +47,9 @@ int main(void) {
 	while (1) {
 		ioctl(vcpufd, KVM_RUN, 0);
 
-		if (run->exit_reason == KVM_EXIT_IO)
-			io_handle(run);
+		if (run->exit_reason == KVM_EXIT_IO
+		    && run->io.port == CON_IO_WRITE)
+			crtc_handle_io(run);
 	}
 
 	return 0;
