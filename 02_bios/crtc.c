@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <linux/kvm.h>
-
-#include "common.h"
+#include "util.h"
 
 void con_handle_io(struct kvm_run *run)
 {
@@ -27,7 +26,7 @@ void con_handle_io(struct kvm_run *run)
 
 	case KVM_EXIT_IO_OUT:
 		for (i = 0; i < run->io.count; i++) {
-			assert(run->io.size == 1, "CON: Undefined IO size");
+			assert(run->io.size == 1, "con: Undefined IO size");
 			putchar(*(char *)((unsigned char *)run + run->io.data_offset));
 			run->io.data_offset += run->io.size;
 		}

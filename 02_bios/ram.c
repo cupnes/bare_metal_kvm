@@ -1,5 +1,5 @@
 #include <sys/mman.h>
-#include "common.h"
+#include "util.h"
 
 void ram_install(int vmfd, unsigned long long base, size_t size)
 {

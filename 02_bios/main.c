@@ -3,8 +3,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
-#include "debug.h"
-#include "common.h"
+#include "util.h"
 #include "ram.h"
 #include "bios_rom.h"
 #include "io.h"
@@ -64,7 +63,7 @@ int main(void) {
 
 		switch (run->exit_reason) {
 		case KVM_EXIT_IO:
-			handle_io(run);
+			io_handle(run);
 			break;
 		default:
 			assert(0, "undefined exit_reason\n");

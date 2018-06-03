@@ -1,3 +1,3 @@
 #pragma once
 
-void handle_io(struct kvm_run *run);
+void io_handle(struct kvm_run *run);
