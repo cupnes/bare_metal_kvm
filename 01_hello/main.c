@@ -67,13 +67,13 @@ int main(void) {
 			return 0;
 
 		case KVM_EXIT_IO:	/* IO操作 */
-			if ((run->io.direction == KVM_EXIT_IO_OUT)
-			    && (run->io.size == 1) && (run->io.port == 0x01)
-			    && (run->io.count == 1)) {
-				putchar(*(((char *)run) + run->io.data_offset));
-			} else {
-				fprintf(stderr, "unhandled KVM_EXIT_IO\n");
-				return 1;
+			if (run->io.port == 0x01
+			    && run->io.direction == KVM_EXIT_IO_OUT) {
+				unsigned int i;
+				for (i = 0; i < run->io.count; i++) {
+					putchar(*(char *)((unsigned char *)run + run->io.data_offset));
+					run->io.data_offset += run->io.size;
+				}
 			}
 		}
 	}
