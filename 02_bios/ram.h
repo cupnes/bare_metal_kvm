@@ -1,3 +1,3 @@
 #pragma once
 
-void setup_mem(int vmfd);
+void ram_install(int vmfd, unsigned long long base, size_t size);

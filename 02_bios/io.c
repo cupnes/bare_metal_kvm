@@ -3,7 +3,7 @@
 #include <sys/types.h>
 
 #include "debug.h"
-#include "con.h"
+#include "crtc.h"
 
 void handle_io(struct kvm_run *run)
 {
