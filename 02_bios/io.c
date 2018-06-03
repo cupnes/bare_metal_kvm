@@ -13,5 +13,5 @@ void io_handle(struct kvm_run *run)
 		    run->io.count, run->io.data_offset);
 
 	if (run->io.port == CON_IO_WRITE)
-		con_handle_io(run);
+		crtc_handle_io(run);
 }

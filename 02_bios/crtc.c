@@ -2,7 +2,7 @@
 #include <linux/kvm.h>
 #include "util.h"
 
-void con_handle_io(struct kvm_run *run)
+void crtc_handle_io(struct kvm_run *run)
 {
 	unsigned int i;
 
