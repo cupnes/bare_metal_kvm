@@ -1,5 +1,5 @@
 CFLAGS = -Wall -Wextra
-SRCS = main.c bios_rom.c io.c crtc.c ram.c util.c
+SRCS = main.c bios_rom.c io.c serial.c ram.c util.c
 
 all: vm
 

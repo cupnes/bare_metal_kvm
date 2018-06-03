@@ -2,7 +2,7 @@
 #include <linux/kvm.h>
 #include <sys/types.h>
 #include "util.h"
-#include "crtc.h"
+#include "serial.h"
 
 void io_handle(struct kvm_run *run)
 {
@@ -12,6 +12,6 @@ void io_handle(struct kvm_run *run)
 	DEBUG_PRINT(" count=0x%08x, data_offset=0x%016llx\n",
 		    run->io.count, run->io.data_offset);
 
-	if (run->io.port == CON_IO_WRITE)
-		crtc_handle_io(run);
+	if (run->io.port == SERIAL_IO_TX)
+		serial_handle_io(run);
 }
