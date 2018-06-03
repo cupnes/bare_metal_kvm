@@ -29,6 +29,7 @@ int main(void) {
 				  -1, 0);
 	memcpy(mem, rom_bin, sizeof(rom_bin));  /* メモリへコードを配置 */
 	struct kvm_userspace_memory_region region = {
+		.guest_phys_addr = 0,
 		.memory_size = ROM_SIZE,
 		.userspace_addr = (unsigned long long)mem
 	};
