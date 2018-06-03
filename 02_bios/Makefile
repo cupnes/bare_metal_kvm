@@ -12,4 +12,12 @@ run: vm
 clean:
 	rm -f *~ vm
 
-.PHONY: run clean
+02_bios_nodebug:
+	rm -rf ../$@
+	mkdir -p ../$@
+	cp Makefile ../$@/
+	for f in $(SRCS); do					\
+		sed -E '/DEBUG_PRINT|assert/d' $$f > ../$@/$$f;	\
+	done
+
+.PHONY: run clean create_no_debug
