@@ -1,11 +1,11 @@
-	mov	$0x48,	%al
+	mov	$'H',	%al
 	out	%al,	$0x01
-	mov	$0x65,	%al
+	mov	$'e',	%al
 	out	%al,	$0x01
-	mov	$0x6c,	%al
+	mov	$'l',	%al
 	out	%al,	$0x01
-	mov	$0x6c,	%al
+	mov	$'l',	%al
 	out	%al,	$0x01
-	mov	$0x6f,	%al
+	mov	$'o',	%al
 	out	%al,	$0x01
 	hlt
