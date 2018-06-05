@@ -8,4 +8,14 @@
 	out	%al,	$0x01
 	mov	$'o',	%al
 	out	%al,	$0x01
+	mov	$' ',	%al
+	out	%al,	$0x01
+	mov	$'K',	%al
+	out	%al,	$0x01
+	mov	$'V',	%al
+	out	%al,	$0x01
+	mov	$'M',	%al
+	out	%al,	$0x01
+	mov	$'!',	%al
+	out	%al,	$0x01
 	hlt
