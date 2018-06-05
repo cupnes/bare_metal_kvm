@@ -73,11 +73,7 @@ int main(void) {
 		case KVM_EXIT_IO:	/* IO操作 */
 			if (run->io.port == 0x01
 			    && run->io.direction == KVM_EXIT_IO_OUT) {
-				unsigned int i;
-				for (i = 0; i < run->io.count; i++) {
-					putchar(*(char *)((unsigned char *)run + run->io.data_offset));
-					run->io.data_offset += run->io.size;
-				}
+				putchar(*(char *)((unsigned char *)run + run->io.data_offset));
 			}
 		}
 	}
