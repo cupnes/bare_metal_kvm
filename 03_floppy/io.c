@@ -1,0 +1,26 @@
+#include <stdio.h>
+#include <linux/kvm.h>
+#include <sys/types.h>
+#include "util.h"
+#include "serial.h"
+#include "fdc.h"
+
+void io_handle(struct kvm_run *run)
+{
+	DEBUG_PRINT("io: KVM_EXIT_IO\n");
+	DEBUG_PRINT("io: direction=%d, size=%d, port=0x%04x,",
+		    run->io.direction, run->io.size, run->io.port);
+	DEBUG_PRINT(" count=0x%08x, data_offset=0x%016llx\n",
+		    run->io.count, run->io.data_offset);
+
+	if (run->io.port == SERIAL_IO_TX)
+		serial_handle_io(run);
+	else if ((run->io.port & FDC_IO_MASK) == FDC_IO_BASE)
+		fprintf(stderr, "### FDC IO ###\n");
+	else {
+		fprintf(stderr, "### io: direction=%d, size=%d, port=0x%04x,",
+			run->io.direction, run->io.size, run->io.port);
+		fprintf(stderr, " count=0x%08x, data_offset=0x%016llx\n",
+			run->io.count, run->io.data_offset);
+	}
+}
