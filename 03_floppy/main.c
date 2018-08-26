@@ -16,6 +16,8 @@
 #define RAM1_SIZE	0x000A0000 /* 640KB */
 #define RAM2_BASE	0x000C0000 /* VGA BIOS Base Address */
 #define RAM2_SIZE	0x00020000 /* 128KB */
+#define RAM3_BASE	0x00100000
+#define RAM3_SIZE	0xDFF00000
 
 int main(void) {
 	int r;
@@ -51,6 +53,7 @@ int main(void) {
 	/* RAM作成、VMへ設定 */
 	ram_install(vmfd, RAM1_BASE, RAM1_SIZE);
 	ram_install(vmfd, RAM2_BASE, RAM2_SIZE);
+	ram_install(vmfd, RAM3_BASE, RAM3_SIZE);
 
 	/* VM実行 */
 	while (1) {

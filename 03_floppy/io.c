@@ -69,13 +69,39 @@ void io_handle(struct kvm_run *run)
 		    run->io.count, run->io.data_offset);
 
 	unsigned long long skip_io = 0;
+
+	if (run->io.port == 0x03f2)
+		printf("##### FDC #####\n");
+
 	if ((run->io.port & SERIAL_IO_MASK) == SERIAL_IO_BASE)
 		skip_io++;
 	else if (run->io.port == SERIAL_IO_TX)
 		serial_handle_io(run);
-	else if ((run->io.port & RTC_IO_MASK) == RTC_IO_BASE)
-		skip_io++;
-	else if ((run->io.port & PS2_IO_MASK) == PS2_IO_BASE) {
+	else if ((run->io.port & RTC_IO_MASK) == RTC_IO_BASE) {
+		static unsigned char rtc_index = 0;
+		if ((run->io.port == 0x70)
+		    && (run->io.direction == KVM_EXIT_IO_OUT)) {
+			rtc_index =
+				*(unsigned char *)((unsigned char *)run
+						   + run->io.data_offset)
+				& 0x7f;
+		} else if ((run->io.port == 0x71)
+			&& (run->io.direction == KVM_EXIT_IO_IN)) {
+			switch (rtc_index) {
+			case 0x0f:
+				*(unsigned char *)((unsigned char *)run
+						   + run->io.data_offset) = 0;
+				break;
+			case 0x34:
+				*(unsigned char *)((unsigned char *)run
+						   + run->io.data_offset) = 8;
+				break;
+			}
+		} else {
+			printf("##### RTC\n");
+			dump_io_access(run);
+		}
+	} else if ((run->io.port & PS2_IO_MASK) == PS2_IO_BASE) {
 		if ((run->io.port == PS2_IO_SCPA)
 		    && (run->io.count == 1) && (run->io.size == 1)) {
 			if (run->io.direction == KVM_EXIT_IO_IN)
