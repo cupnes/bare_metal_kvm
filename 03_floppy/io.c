@@ -31,6 +31,9 @@
 #define HDC2_IO_BASE	0x0170
 #define HDC2_IO_MASK	0xfff8
 
+#define PCI_IO_BASE	0x0cf8
+#define PCI_IO_MASK	0xfff8
+
 static void dump_io_access(struct kvm_run *run) {
 	unsigned int i;
 
@@ -67,7 +70,7 @@ void io_handle(struct kvm_run *run)
 	DEBUG_PRINT(" count=0x%08x, data_offset=0x%016llx\n",
 		    run->io.count, run->io.data_offset);
 
-	dump_io_access(run);
+	/* dump_io_access(run); */
 
 	unsigned long long skip_io = 0;
 
@@ -121,9 +124,10 @@ void io_handle(struct kvm_run *run)
 		skip_io++;
 	else if (run->io.port == 0xcfc)
 		*(unsigned short *)((unsigned char *)run + run->io.data_offset) = 0x8000;
-	else if (run->io.port == 0x0cf8
-		   || run->io.port == 0x0510 || run->io.port == 0x0511
-		   || run->io.port == 0x000d || run->io.port == 0x03e9)
+	else if ((run->io.port & PCI_IO_MASK) == PCI_IO_BASE) {
+		
+	} else if (run->io.port == 0x0510 || run->io.port == 0x0511
+		 || run->io.port == 0x000d || run->io.port == 0x03e9)
 		skip_io++;
 	else if ((run->io.port & UPW48_IO_MASK) == UPW48_IO_BASE)
 		skip_io++;
