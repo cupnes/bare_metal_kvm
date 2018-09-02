@@ -33,8 +33,10 @@
 
 #define PCI_IO_BASE	0x0cf8
 #define PCI_IO_MASK	0xfff8
+#define PCI_IO_CONFIG_ADDR	0x0cf8
+#define PCI_IO_CONFIG_DATA	0x0cfc
 
-static void dump_io_access(struct kvm_run *run) {
+static void dump_io_access_begin(struct kvm_run *run) {
 	unsigned int i;
 
 	fprintf(stderr, "### io: direction=%d, size=%d, port=0x%04x,",
@@ -62,6 +64,26 @@ static void dump_io_access(struct kvm_run *run) {
 	}
 }
 
+static void dump_io_access_end(struct kvm_run *run) {
+	if (run->io.direction == KVM_EXIT_IO_IN) {
+		switch (run->io.size) {
+		case 1:
+			fprintf(stderr, "%02x ",
+				*(unsigned char *)((unsigned char *)run + run->io.data_offset));
+			break;
+		case 2:
+			fprintf(stderr, "%04x ",
+				*(unsigned short *)((unsigned char *)run + run->io.data_offset));
+			break;
+		case 4:
+			fprintf(stderr, "%08x ",
+				*(unsigned int *)((unsigned char *)run + run->io.data_offset));
+			break;
+		}
+		fprintf(stderr, "\n");
+	}
+}
+
 void io_handle(struct kvm_run *run)
 {
 	DEBUG_PRINT("io: KVM_EXIT_IO\n");
@@ -70,12 +92,12 @@ void io_handle(struct kvm_run *run)
 	DEBUG_PRINT(" count=0x%08x, data_offset=0x%016llx\n",
 		    run->io.count, run->io.data_offset);
 
-	/* dump_io_access(run); */
+	dump_io_access_begin(run);
 
 	unsigned long long skip_io = 0;
 
-	/* if (run->io.port == 0x03f2) */
-	/* 	printf("##### FDC #####\n"); */
+	if (run->io.port == 0x03f2)
+		printf("##### FDC #####\n");
 
 	if ((run->io.port & SERIAL_IO_MASK) == SERIAL_IO_BASE)
 		skip_io++;
@@ -103,7 +125,7 @@ void io_handle(struct kvm_run *run)
 			}
 		} /* else { */
 		/* 	printf("##### RTC\n"); */
-		/* 	dump_io_access(run); */
+		/* 	dump_io_access_begin(run); */
 		/* } */
 	} else if ((run->io.port & PS2_IO_MASK) == PS2_IO_BASE) {
 		if ((run->io.port == PS2_IO_SCPA)
@@ -111,7 +133,7 @@ void io_handle(struct kvm_run *run)
 			if (run->io.direction == KVM_EXIT_IO_IN)
 				*(unsigned char *)((unsigned char *)run + run->io.data_offset) = 0x00;
 		} /* else { */
-		/* 	dump_io_access(run); */
+		/* 	dump_io_access_begin(run); */
 		/* 	fflush(stdout); */
 		/* 	assert(0, "undefined PS2\n"); */
 		/* } */
@@ -125,7 +147,8 @@ void io_handle(struct kvm_run *run)
 	else if (run->io.port == 0xcfc)
 		*(unsigned short *)((unsigned char *)run + run->io.data_offset) = 0x8000;
 	else if ((run->io.port & PCI_IO_MASK) == PCI_IO_BASE) {
-		
+		/* dump_io_access_begin(run); */
+		/* dump_io_access_end(run); */
 	} else if (run->io.port == 0x0510 || run->io.port == 0x0511
 		 || run->io.port == 0x000d || run->io.port == 0x03e9)
 		skip_io++;
@@ -135,28 +158,10 @@ void io_handle(struct kvm_run *run)
 		 || (run->io.port & HDC2_IO_MASK) == HDC2_IO_BASE)
 		skip_io++;
 	/* else { */
-	/* 	dump_io_access(run); */
+	/* 	dump_io_access_begin(run); */
 	/* 	fflush(stdout); */
 	/* 	assert(0, "undefined io\n"); */
 	/* } */
 
-
-
-	if (run->io.direction == KVM_EXIT_IO_IN) {
-		switch (run->io.size) {
-		case 1:
-			fprintf(stderr, "%02x ",
-				*(unsigned char *)((unsigned char *)run + run->io.data_offset));
-			break;
-		case 2:
-			fprintf(stderr, "%04x ",
-				*(unsigned short *)((unsigned char *)run + run->io.data_offset));
-			break;
-		case 4:
-			fprintf(stderr, "%08x ",
-				*(unsigned int *)((unsigned char *)run + run->io.data_offset));
-			break;
-		}
-		fprintf(stderr, "\n");
-	}
+	dump_io_access_end(run);
 }
