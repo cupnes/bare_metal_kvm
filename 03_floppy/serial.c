@@ -27,7 +27,7 @@ void serial_handle_io(struct kvm_run *run)
 	case KVM_EXIT_IO_OUT:
 		for (i = 0; i < run->io.count; i++) {
 			assert(run->io.size == 1, "serial: Undefined IO size");
-			/* putchar(*(char *)((unsigned char *)run + run->io.data_offset)); */
+			putchar(*(char *)((unsigned char *)run + run->io.data_offset));
 			run->io.data_offset += run->io.size;
 		}
 		break;

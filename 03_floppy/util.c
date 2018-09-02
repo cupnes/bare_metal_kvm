@@ -16,6 +16,10 @@ int kvm_set_user_memory_region(
 	usmem.memory_size = memory_size;
 	usmem.userspace_addr = userspace_addr;
 	usmem.flags = 0;
+
+	printf("Mapping 0x%08llx (size 0x%08llx, host=0x%016llx)\n",
+	       usmem.guest_phys_addr, usmem.memory_size, usmem.userspace_addr);
+
 	return ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &usmem);
 }
 

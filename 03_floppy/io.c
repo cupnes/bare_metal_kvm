@@ -36,13 +36,16 @@
 #define PCI_IO_CONFIG_ADDR	0x0cf8
 #define PCI_IO_CONFIG_DATA	0x0cfc
 
+#define DEBUG_DUMP_IO_ACCESS
+
 static void dump_io_access_begin(struct kvm_run *run) {
+#ifdef DEBUG_DUMP_IO_ACCESS
 	unsigned int i;
 
 	fprintf(stderr, "### io: direction=%d, size=%d, port=0x%04x,",
 		run->io.direction, run->io.size, run->io.port);
-	fprintf(stderr, " count=0x%08x, data_offset=0x%016llx, data=0x",
-		run->io.count, run->io.data_offset);
+	fprintf(stderr, " count=0x%08x, data=0x",
+		run->io.count);
 	if (run->io.direction == KVM_EXIT_IO_OUT) {
 		for (i = 0; i < run->io.count; i++) {
 			switch (run->io.size) {
@@ -62,9 +65,11 @@ static void dump_io_access_begin(struct kvm_run *run) {
 		}
 		fprintf(stderr, "\n");
 	}
+#endif
 }
 
 static void dump_io_access_end(struct kvm_run *run) {
+#ifdef DEBUG_DUMP_IO_ACCESS
 	if (run->io.direction == KVM_EXIT_IO_IN) {
 		switch (run->io.size) {
 		case 1:
@@ -82,6 +87,7 @@ static void dump_io_access_end(struct kvm_run *run) {
 		}
 		fprintf(stderr, "\n");
 	}
+#endif
 }
 
 void io_handle(struct kvm_run *run)
@@ -144,10 +150,28 @@ void io_handle(struct kvm_run *run)
 	else if (((run->io.port & PARALLEL_PRINTER_IO_MASK) == PARALLEL_PRINTER_IO_BASE)
 		 || ((run->io.port & PARALLEL_PRINTER2_IO_MASK) == PARALLEL_PRINTER2_IO_BASE))
 		skip_io++;
-	else if (run->io.port == 0xcfc)
-		*(unsigned short *)((unsigned char *)run + run->io.data_offset) = 0x8000;
 	else if ((run->io.port & PCI_IO_MASK) == PCI_IO_BASE) {
 		/* dump_io_access_begin(run); */
+
+		static unsigned int pci_config_addr;
+		switch (run->io.port) {
+		case PCI_IO_CONFIG_ADDR:
+			if (run->io.direction == KVM_EXIT_IO_OUT) {
+				pci_config_addr = *(unsigned int *)((unsigned char *)run + run->io.data_offset);
+			}
+			break;
+
+		case PCI_IO_CONFIG_DATA:
+			if (run->io.direction == KVM_EXIT_IO_IN) {
+				if (run->io.size == 2)
+					*(unsigned short *)((unsigned char *)run + run->io.data_offset) = 0x8000;
+			}
+			break;
+
+		default:
+			break;
+		}
+
 		/* dump_io_access_end(run); */
 	} else if (run->io.port == 0x0510 || run->io.port == 0x0511
 		 || run->io.port == 0x000d || run->io.port == 0x03e9)

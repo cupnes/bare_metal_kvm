@@ -18,6 +18,8 @@
 #define RAM2_SIZE	0x00020000 /* 128KB */
 #define RAM3_BASE	0x00100000
 #define RAM3_SIZE	0xDFF00000
+#define RAM4_BASE	0x100000000LL
+#define RAM4_SIZE	0x11FF00000LL
 
 int main(void) {
 	int r;
@@ -54,6 +56,7 @@ int main(void) {
 	ram_install(vmfd, RAM1_BASE, RAM1_SIZE);
 	ram_install(vmfd, RAM2_BASE, RAM2_SIZE);
 	ram_install(vmfd, RAM3_BASE, RAM3_SIZE);
+	ram_install(vmfd, RAM4_BASE, RAM4_SIZE);
 
 	/* VM実行 */
 	while (1) {
