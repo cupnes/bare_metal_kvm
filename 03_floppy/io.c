@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <linux/kvm.h>
 #include <sys/types.h>
+#include "io.h"
+#include "pci.h"
 #include "util.h"
 #include "serial.h"
 #include "fdc.h"
+#include "types.h"
 
 #define RTC_IO_BASE	0x0070
 #define RTC_IO_MASK	0xfff0
@@ -37,6 +40,8 @@
 #define PCI_IO_CONFIG_DATA	0x0cfc
 
 #define DEBUG_DUMP_IO_ACCESS
+
+io_handler_t pci_handler;
 
 static void dump_io_access_begin(struct kvm_run *run) {
 #ifdef DEBUG_DUMP_IO_ACCESS
@@ -118,7 +123,7 @@ void io_handle(struct kvm_run *run)
 						   + run->io.data_offset)
 				& 0x7f;
 		} else if ((run->io.port == 0x71)
-			&& (run->io.direction == KVM_EXIT_IO_IN)) {
+			   && (run->io.direction == KVM_EXIT_IO_IN)) {
 			switch (rtc_index) {
 			case 0x0f:
 				*(unsigned char *)((unsigned char *)run
@@ -153,28 +158,71 @@ void io_handle(struct kvm_run *run)
 	else if ((run->io.port & PCI_IO_MASK) == PCI_IO_BASE) {
 		/* dump_io_access_begin(run); */
 
-		static unsigned int pci_config_addr;
-		switch (run->io.port) {
-		case PCI_IO_CONFIG_ADDR:
-			if (run->io.direction == KVM_EXIT_IO_OUT) {
-				pci_config_addr = *(unsigned int *)((unsigned char *)run + run->io.data_offset);
+		unsigned int c;
+		if (run->io.direction == KVM_EXIT_IO_OUT) {
+			for (c = 0; c < run->io.count; c++) {
+				if (run->io.size == 2) {
+					pci_handler.outw(
+						&pci_handler,
+						run->io.port - pci_handler.base,
+						*(uint16 *)((uint8 *)run + run->io.data_offset));
+				} else if(run->io.size == 4) {
+					pci_handler.outl(
+						&pci_handler,
+						run->io.port - pci_handler.base,
+						*(uint32 *)((uint8 *)run + run->io.data_offset));
+				} else {
+					assert(0, "Unknown out-size");
+				}
+				run->io.data_offset += run->io.size;
 			}
-			break;
-
-		case PCI_IO_CONFIG_DATA:
-			if (run->io.direction == KVM_EXIT_IO_IN) {
-				if (run->io.size == 2)
-					*(unsigned short *)((unsigned char *)run + run->io.data_offset) = 0x8000;
+		} else { // KVM_EXIT_IO_IN
+			for(c = 0; c < run->io.count; c++) {
+				if (run->io.size == 1 ) {
+					*(uint8 *)((uint8 *)run + run->io.data_offset) =
+						pci_handler.inb(
+							&pci_handler,
+							run->io.port - pci_handler.base);
+				} else if(run->io.size == 2) {
+					*(uint16 *)((uint8 *)run + run->io.data_offset) =
+						pci_handler.inw(
+							&pci_handler,
+							run->io.port - pci_handler.base);
+				} else if(run->io.size == 4) {
+					*(uint32 *)((uint8 *)run + run->io.data_offset) =
+						pci_handler.inl(
+							&pci_handler,
+							run->io.port - pci_handler.base);
+				} else {
+					assert(0, "Unknown in-size");
+				}
+				run->io.data_offset += run->io.size;
 			}
-			break;
-
-		default:
-			break;
 		}
+
+
+		/* static unsigned int pci_config_addr; */
+		/* switch (run->io.port) { */
+		/* case PCI_IO_CONFIG_ADDR: */
+		/* 	if (run->io.direction == KVM_EXIT_IO_OUT) { */
+		/* 		pci_config_addr = *(unsigned int *)((unsigned char *)run + run->io.data_offset); */
+		/* 	} */
+		/* 	break; */
+
+		/* case PCI_IO_CONFIG_DATA: */
+		/* 	if (run->io.direction == KVM_EXIT_IO_IN) { */
+		/* 		if (run->io.size == 2) */
+		/* 			*(unsigned short *)((unsigned char *)run + run->io.data_offset) = 0x8000; */
+		/* 	} */
+		/* 	break; */
+
+		/* default: */
+		/* 	break; */
+		/* } */
 
 		/* dump_io_access_end(run); */
 	} else if (run->io.port == 0x0510 || run->io.port == 0x0511
-		 || run->io.port == 0x000d || run->io.port == 0x03e9)
+		   || run->io.port == 0x000d || run->io.port == 0x03e9)
 		skip_io++;
 	else if ((run->io.port & UPW48_IO_MASK) == UPW48_IO_BASE)
 		skip_io++;
@@ -188,4 +236,9 @@ void io_handle(struct kvm_run *run)
 	/* } */
 
 	dump_io_access_end(run);
+}
+
+void io_init(void)
+{
+	x86_pci_init(&pci_handler);
 }

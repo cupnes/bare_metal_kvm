@@ -3,7 +3,7 @@ CFLAGS := -Wall -g -Iinclude/
 
 CFLAGS = -Wall -Wextra
 # SRCS = main.c bios_rom.c io.c serial.c ram.c util.c
-OBJS = main.o bios_rom.o io.o serial.o ram.o util.o
+OBJS = main.o bios_rom.o io.o serial.o ram.o util.o pci.o
 
 all: vm
 
